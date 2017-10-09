@@ -83,6 +83,7 @@ CREATE TABLE users (
   id int NOT NULL IDENTITY(1,1),
   email character varying(100) DEFAULT NULL,
   password character varying(60) DEFAULT NULL,
+  access character varying(200) DEFAULT NULL,
   isactive smallint NOT NULL DEFAULT '0',
   dt datetime2 NOT NULL DEFAULT GETDATE(),
   PRIMARY KEY (id)
