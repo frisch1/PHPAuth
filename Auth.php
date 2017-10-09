@@ -1,9 +1,9 @@
 <?php
 
 namespace PHPAuth;
-
 use ZxcvbnPhp\Zxcvbn;
 use PHPMailer;
+use PHPMailer\Exception;
 
 /**
  * Auth class
@@ -89,7 +89,7 @@ class Auth
         }
 
         $uid = $this->getUID(strtolower($email));
-
+	$getAccess = $this->getAccess(strtolower($email));
         if (!$uid) {
             $this->addAttempt();
             $return['message'] = $this->lang["email_password_incorrect"];
@@ -123,7 +123,7 @@ class Auth
 
         $return['error'] = false;
         $return['message'] = $this->lang["logged_in"];
-
+	$return['access'] = $getAccess;
         $return['hash'] = $sessiondata['hash'];
         $return['expire'] = $sessiondata['expire'];
 		
@@ -143,7 +143,7 @@ class Auth
     * @return array $return
     */
 
-    public function register($email, $password, $repeatpassword, $params = Array(), $captcha = NULL, $sendmail = NULL)
+    public function register($email, $password, $repeatpassword, $access, $params = Array(), $captcha = NULL, $sendmail = true)
     {
         $return['error'] = true;
         $block_status = $this->isBlocked();
@@ -201,7 +201,7 @@ class Auth
             return $return;
         }
 
-        $addUser = $this->addUser($email, $password, $params, $sendmail);
+        $addUser = $this->addUser($email, $password, $access, $params, $sendmail);
 
         if ($addUser['error'] != 0) {
             $return['message'] = $addUser['message'];
@@ -363,7 +363,23 @@ class Auth
         return $row['id'];
     }
 
-    /**
+	
+    /** Gets the level of access associated with a user */
+    public function getAccess($email)
+    {
+        $query = $this->dbh->prepare("SELECT access FROM {$this->config->table_users} WHERE email = ?");
+        $query->execute(array($email));
+
+        if ($query->rowCount() == 0) {
+            return false;
+        }
+
+        return $query->fetch(\PDO::FETCH_ASSOC)['access'];
+	}
+
+
+	
+     /**
     * Creates a session for a specified user id
     * @param int $uid
     * @param boolean $remember
@@ -529,7 +545,7 @@ class Auth
     * @return int $uid
     */
 
-    protected function addUser($email, $password, $params = array(), &$sendmail)
+    protected function addUser($email, $password, $access, $params = array(), &$sendmail)
     {
         $return['error'] = true;
 
@@ -573,9 +589,9 @@ class Auth
             }, $customParamsQueryArray));
         } else { $setParams = ''; }
 
-        $query = $this->dbh->prepare("UPDATE {$this->config->table_users} SET email = ?, password = ?, isactive = ? {$setParams} WHERE id = ?");
+        $query = $this->dbh->prepare("UPDATE {$this->config->table_users} SET email = ?, password = ?, access = ?, isactive = ? {$setParams} WHERE id = ?");
 
-        $bindParams = array_values(array_merge(array($email, $password, $isactive), $params, array($uid)));
+        $bindParams = array_values(array_merge(array($email, $password, $access, $isactive), $params, array($uid)));
 
         if (!$query->execute($bindParams)) {
             $query = $this->dbh->prepare("DELETE FROM {$this->config->table_users} WHERE id = ?");
