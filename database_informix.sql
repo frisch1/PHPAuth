@@ -79,6 +79,7 @@ CREATE TABLE users (
   id SERIAL,
   email varchar(100) DEFAULT NULL,
   password varchar(60) DEFAULT NULL,
+  access varchar(200) DEFAULT NULL,
   isactive smallint DEFAULT 0 NOT NULL,
   dt DATETIME YEAR TO SECOND DEFAULT CURRENT YEAR TO SECOND,
   PRIMARY KEY (id)
